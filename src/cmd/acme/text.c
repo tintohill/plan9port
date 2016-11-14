@@ -682,9 +682,37 @@ texttype(Text *t, Rune r)
 		return;
 	case Kdown:
 		if(t->what == Tag)
-			goto Tagdown;
-		n = t->fr.maxlines/3;
-		goto case_Down;
+ 			goto Tagdown;
+/*me*/
+// 		n = t->fr.maxlines/3; 
+//		goto case_Down; 
+/*me*/
+		typecommit(t);
+/* 1rst check for being in the last line*/	
+		q0 = t->q0;
+		q1 = q0;
+		if (q1) q1--;
+		nnb = 0;
+		while(q0<t->file->b.nc && textreadc(t, q0)!='\n')
+			q0++;
+		if (q0 == (t->file->b.nc)-1) {
+			textshow(t, q0, q0, TRUE);
+			return;
+		}
+		q0++;
+/* find old pos in ln */
+		while(q1>1 && textreadc(t, q1)!='\n'){
+			nnb++;
+			q1--;
+		}
+/* go right until reachg pos or \n */
+		while(q0<t->file->b.nc && (nnb>0 && textreadc(t, q0)!='\n')){
+			q0++;
+			nnb--;
+		}
+		if (q0>1 && q0<t->file->b.nc)
+			textshow(t, q0, q0, TRUE);
+		return;	 		
 	case Kscrollonedown:
 		if(t->what == Tag)
 			goto Tagdown;
@@ -701,8 +729,18 @@ texttype(Text *t, Rune r)
 	case Kup:
 		if(t->what == Tag)
 			goto Tagup;
-		n = t->fr.maxlines/3;
-		goto case_Up;
+		typecommit(t); /*me*/
+		/* goto BOL */
+		nnb = 0; /*me*/
+		if(t->q0>0 && textreadc(t, t->q0-1)!='\n')
+			nnb = textbswidth(t, 0x15); /*me*/
+		/* BOL - 1 if not first line of txt BOL*/
+		if( t->q0-nnb > 1  && textreadc(t, t->q0-nnb-1)=='\n' ) nnb++; /*me*/
+        	// if( t->q1-nnb > 1) 
+		textshow(t, t->q0-nnb, t->q0-nnb, TRUE); /*me*/
+		return; /*me*/
+//		n = t->fr.maxlines/3;  /*me*/
+//		goto case_Up; /*me*/
 	case Kscrolloneup:
 		if(t->what == Tag)
 			goto Tagup;
@@ -748,6 +786,10 @@ texttype(Text *t, Rune r)
 		while(q0<t->file->b.nc && textreadc(t, q0)!='\n')
 			q0++;
 		textshow(t, q0, q0, TRUE);
+		return;
+	case Kcmd+'s':	/* %C: save == Put */ /*me*/
+		typecommit(t);
+		put(t, t, nil, TRUE, FALSE, nil, 0);
 		return;
 	case 3:		/* ^C: copy */
 	case Kcmd+'c':	/* %C: copy */
@@ -927,6 +969,29 @@ texttype(Text *t, Rune r)
 	if(r=='\n' && t->w!=nil)
 		wincommit(t->w, t);
 	t->iq1 = t->q0;
+    /*me*/
+    if (r=='(') {
+        typecommit(t);
+        texttype(t, ')');
+        typecommit(t);
+        if(t->q0 > 0)
+			textshow(t, t->q0-1, t->q0-1, TRUE);
+    }
+    if (r=='{') {
+        typecommit(t);
+        texttype(t, '}');
+        typecommit(t);
+        if(t->q0 > 0)
+			textshow(t, t->q0-1, t->q0-1, TRUE);
+    }
+    if (r=='[') {
+        typecommit(t);
+        texttype(t, ']');
+        typecommit(t);
+        if(t->q0 > 0)
+			textshow(t, t->q0-1, t->q0-1, TRUE);
+    }
+    /*me*/
 }
 
 void
