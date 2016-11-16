@@ -1,0 +1,42 @@
+From 95f9d6837541eec7e85cb0009f46011c61639ad0 Mon Sep 17 00:00:00 2001
+From: Ethan Burns <burns.ethan@gmail.com>
+Date: Thu, 21 May 2015 06:58:02 -0400
+Subject: [PATCH] Open files specified on the command line even in the presence
+ of -l.
+
+Before this change, if the -l argument was given, filenames listed on the command line were ignored. With this change, it now loads the dump and then opens the requested files. This is handy for users who have a shell alias that always loads a dump file containing their favorite fonts and column layout.
+---
+ src/cmd/acme/acme.c | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/src/cmd/acme/acme.c b/src/cmd/acme/acme.c
+index 2f4fe3a..a08de9b 100644
+--- a/src/cmd/acme/acme.c
++++ b/src/cmd/acme/acme.c
+@@ -256,15 +256,16 @@ threadmain(int argc, char *argv[])
+ 		c = row.col[row.ncol-1];
+ 		if(argc == 0)
+ 			readfile(c, wdir);
++	}
++
++	for(i=0; i<argc; i++){
++		p = utfrrune(argv[i], '/');
++		if((p!=nil && strcmp(p, "/guide")==0) || i/WPERCOL>=row.ncol)
++			readfile(c, argv[i]);
+ 		else
+-			for(i=0; i<argc; i++){
+-				p = utfrrune(argv[i], '/');
+-				if((p!=nil && strcmp(p, "/guide")==0) || i/WPERCOL>=row.ncol)
+-					readfile(c, argv[i]);
+-				else
+-					readfile(row.col[i/WPERCOL], argv[i]);
+-			}
++			readfile(row.col[i/WPERCOL], argv[i]);
+ 	}
++
+ 	flushimage(display, 1);
+ 
+ 	acmeerrorinit();
+-- 
+2.9.3
+
